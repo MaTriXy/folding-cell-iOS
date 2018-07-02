@@ -26,7 +26,7 @@ import UIKit
 /// UITableViewCell with folding animation
 open class FoldingCell: UITableViewCell {
     
-    /// UIView whitch display when cell open
+    /// UIView is displayed when cell open
     @IBOutlet open var containerView: UIView!
     @IBOutlet open var containerViewTop: NSLayoutConstraint!
     
@@ -103,7 +103,7 @@ open class FoldingCell: UITableViewCell {
         var rotatedViews = [RotatedView]()
         
         animationView?.subviews
-            .flatMap({ $0 as? RotatedView })
+            .compactMap({ $0 as? RotatedView })
             .sorted(by: { $0.tag < $1.tag })
             .forEach { itemView in
                 rotatedViews.append(itemView)
@@ -120,11 +120,11 @@ open class FoldingCell: UITableViewCell {
         
         if animationType == .open {
             animationView?.subviews
-                .flatMap { $0 as? RotatedView }
+                .compactMap { $0 as? RotatedView }
                 .forEach { $0.alpha = 0 }
         } else {
             animationView?.subviews
-                .flatMap { $0 as? RotatedView }
+                .compactMap { $0 as? RotatedView }
                 .forEach {
                     if animationType == .open {
                         $0.alpha = 0
@@ -183,14 +183,14 @@ open class FoldingCell: UITableViewCell {
         let foregroundViewSize = foregroundView.bounds.size
         
         // added first item
-        var image = containerView.pb_takeSnapshot(CGRect(x: 0, y: 0, width: containerViewSize.width, height: foregroundViewSize.height))
+        var image = containerView.takeSnapshot(CGRect(x: 0, y: 0, width: containerViewSize.width, height: foregroundViewSize.height))
         var imageView = UIImageView(image: image)
         imageView.tag = 0
         imageView.layer.cornerRadius = foregroundView.layer.cornerRadius
         animationView?.addSubview(imageView)
         
         // added secod item
-        image = containerView.pb_takeSnapshot(CGRect(x: 0, y: foregroundViewSize.height, width: containerViewSize.width, height: foregroundViewSize.height))
+        image = containerView.takeSnapshot(CGRect(x: 0, y: foregroundViewSize.height, width: containerViewSize.width, height: foregroundViewSize.height))
         
         imageView = UIImageView(image: image)
         let rotatedView = RotatedView(frame: imageView.frame)
@@ -216,7 +216,7 @@ open class FoldingCell: UITableViewCell {
         var yPosition = 2 * foregroundViewSize.height
         var tag = 2
         for _ in 2 ..< itemCount {
-            image = containerView.pb_takeSnapshot(CGRect(x: 0, y: yPosition, width: containerViewSize.width, height: itemHeight))
+            image = containerView.takeSnapshot(CGRect(x: 0, y: yPosition, width: containerViewSize.width, height: itemHeight))
             
             imageView = UIImageView(image: image)
             let rotatedView = RotatedView(frame: imageView.frame)
@@ -263,7 +263,7 @@ open class FoldingCell: UITableViewCell {
     ///   - value: unfold = true; collapse = false.
     ///   - animated: animate changes.
     ///   - completion: A block object to be executed when the animation sequence ends.
-    open func unfold(_ value: Bool, animated: Bool = true, completion: (() -> Void)? = nil) {
+    @objc open func unfold(_ value: Bool, animated: Bool = true, completion: (() -> Void)? = nil) {
         if animated {
             value ? openAnimation(completion) : closeAnimation(completion)
         } else {
@@ -272,7 +272,7 @@ open class FoldingCell: UITableViewCell {
         }
     }
     
-    open func isAnimating() -> Bool {
+    @objc open func isAnimating() -> Bool {
         return animationView?.alpha == 1 ? true : false
     }
     
@@ -284,8 +284,8 @@ open class FoldingCell: UITableViewCell {
         return type == .close ? durationsForCollapsedState[itemIndex] : durationsForExpandedState[itemIndex]
     }
     
-    open var durationsForExpandedState: [TimeInterval] = []
-    open var durationsForCollapsedState: [TimeInterval] = []
+    @objc open var durationsForExpandedState: [TimeInterval] = []
+    @objc open var durationsForCollapsedState: [TimeInterval] = []
     
     func durationSequence(_ type: AnimationType) -> [TimeInterval] {
         var durations = [TimeInterval]()
@@ -476,9 +476,10 @@ extension RotatedView: CAAnimationDelegate {
     }
 }
 
+// MARK: UIView + extension
 private extension UIView {
     
-    func pb_takeSnapshot(_ frame: CGRect) -> UIImage? {
+    func takeSnapshot(_ frame: CGRect) -> UIImage? {
         UIGraphicsBeginImageContextWithOptions(frame.size, false, 0)
         
         guard let context = UIGraphicsGetCurrentContext() else { return nil }

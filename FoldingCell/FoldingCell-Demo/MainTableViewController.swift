@@ -26,9 +26,12 @@ import UIKit
 
 class MainTableViewController: UITableViewController {
 
-    let kCloseCellHeight: CGFloat = 179
-    let kOpenCellHeight: CGFloat = 488
-    let kRowsCount = 10
+    enum Const {
+        static let closeCellHeight: CGFloat = 179
+        static let openCellHeight: CGFloat = 488
+        static let rowsCount = 10
+    }
+    
     var cellHeights: [CGFloat] = []
 
     override func viewDidLoad() {
@@ -37,10 +40,24 @@ class MainTableViewController: UITableViewController {
     }
 
     private func setup() {
-        cellHeights = Array(repeating: kCloseCellHeight, count: kRowsCount)
-        tableView.estimatedRowHeight = kCloseCellHeight
+        cellHeights = Array(repeating: Const.closeCellHeight, count: Const.rowsCount)
+        tableView.estimatedRowHeight = Const.closeCellHeight
         tableView.rowHeight = UITableViewAutomaticDimension
         tableView.backgroundColor = UIColor(patternImage: #imageLiteral(resourceName: "background"))
+        if #available(iOS 10.0, *) {
+            tableView.refreshControl = UIRefreshControl()
+            tableView.refreshControl?.addTarget(self, action: #selector(refreshHandler), for: .valueChanged)
+        }
+    }
+    
+    @objc func refreshHandler() {
+        let deadlineTime = DispatchTime.now() + .seconds(1)
+        DispatchQueue.main.asyncAfter(deadline: deadlineTime, execute: { [weak self] in
+            if #available(iOS 10.0, *) {
+                self?.tableView.refreshControl?.endRefreshing()
+            } 
+            self?.tableView.reloadData()
+        })
     }
 }
 
@@ -59,7 +76,7 @@ extension MainTableViewController {
 
         cell.backgroundColor = .clear
 
-        if cellHeights[indexPath.row] == kCloseCellHeight {
+        if cellHeights[indexPath.row] == Const.closeCellHeight {
             cell.unfold(false, animated: false, completion: nil)
         } else {
             cell.unfold(true, animated: false, completion: nil)
@@ -89,13 +106,13 @@ extension MainTableViewController {
         }
 
         var duration = 0.0
-        let cellIsCollapsed = cellHeights[indexPath.row] == kCloseCellHeight
+        let cellIsCollapsed = cellHeights[indexPath.row] == Const.closeCellHeight
         if cellIsCollapsed {
-            cellHeights[indexPath.row] = kOpenCellHeight
+            cellHeights[indexPath.row] = Const.openCellHeight
             cell.unfold(true, animated: true, completion: nil)
             duration = 0.5
         } else {
-            cellHeights[indexPath.row] = kCloseCellHeight
+            cellHeights[indexPath.row] = Const.closeCellHeight
             cell.unfold(false, animated: true, completion: nil)
             duration = 0.8
         }
