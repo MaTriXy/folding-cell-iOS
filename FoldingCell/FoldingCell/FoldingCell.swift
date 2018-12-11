@@ -49,7 +49,7 @@ open class FoldingCell: UITableViewCell {
      - Open:  Open direction
      - Close: Close direction
      */
-    public enum AnimationType {
+    @objc public enum AnimationType : Int {
         case open
         case close
     }
@@ -65,7 +65,7 @@ open class FoldingCell: UITableViewCell {
     /**
      Call this method in methods init(style: UITableViewCellStyle, reuseIdentifier: String?) after creating Views
      */
-    open func commonInit() {
+    @objc open func commonInit() {
         configureDefaultState()
         
         selectionStyle = .none
@@ -93,7 +93,7 @@ open class FoldingCell: UITableViewCell {
         foregroundView.layer.transform = foregroundView.transform3d()
         
         createAnimationView()
-        contentView.bringSubview(toFront: foregroundView)
+        contentView.bringSubviewToFront(foregroundView)
     }
     
     func createAnimationItemView() -> [RotatedView] {
@@ -103,6 +103,7 @@ open class FoldingCell: UITableViewCell {
         var rotatedViews = [RotatedView]()
         
         animationView?.subviews
+            .lazy
             .compactMap({ $0 as? RotatedView })
             .sorted(by: { $0.tag < $1.tag })
             .forEach { itemView in
@@ -120,10 +121,12 @@ open class FoldingCell: UITableViewCell {
         
         if animationType == .open {
             animationView?.subviews
+                .lazy
                 .compactMap { $0 as? RotatedView }
                 .forEach { $0.alpha = 0 }
         } else {
             animationView?.subviews
+                .lazy
                 .compactMap { $0 as? RotatedView }
                 .forEach {
                     if animationType == .open {
@@ -276,11 +279,11 @@ open class FoldingCell: UITableViewCell {
         return animationView?.alpha == 1 ? true : false
     }
     
-    open var isUnfolded = false
+    @objc open var isUnfolded = false
     
     // MARK: Animations
     
-    open func animationDuration(_ itemIndex: NSInteger, type: AnimationType) -> TimeInterval {
+    @objc open func animationDuration(_ itemIndex: NSInteger, type: AnimationType) -> TimeInterval {
         return type == .close ? durationsForCollapsedState[itemIndex] : durationsForExpandedState[itemIndex]
     }
     
@@ -297,7 +300,7 @@ open class FoldingCell: UITableViewCell {
         return durations
     }
     
-    public func openAnimation(_ completion: (() -> Void)?) {
+    func openAnimation(_ completion: (() -> Void)?) {
         isUnfolded = true
         removeImageItemsFromAnimationView()
         addImageItemsToAnimationView()
@@ -308,7 +311,7 @@ open class FoldingCell: UITableViewCell {
         let durations = durationSequence(.open)
         
         var delay: TimeInterval = 0
-        var timing = kCAMediaTimingFunctionEaseIn
+        var timing = convertFromCAMediaTimingFunctionName(CAMediaTimingFunctionName.easeIn)
         var from: CGFloat = 0.0
         var to: CGFloat = -CGFloat.pi / 2
         var hidden = true
@@ -325,7 +328,7 @@ open class FoldingCell: UITableViewCell {
             
             from = from == 0.0 ? CGFloat.pi / 2 : 0.0
             to = to == 0.0 ? -CGFloat.pi / 2 : 0.0
-            timing = timing == kCAMediaTimingFunctionEaseIn ? kCAMediaTimingFunctionEaseOut : kCAMediaTimingFunctionEaseIn
+            timing = timing == convertFromCAMediaTimingFunctionName(CAMediaTimingFunctionName.easeIn) ? convertFromCAMediaTimingFunctionName(CAMediaTimingFunctionName.easeOut) : convertFromCAMediaTimingFunctionName(CAMediaTimingFunctionName.easeIn)
             hidden = !hidden
             delay += durations[index]
         }
@@ -344,7 +347,7 @@ open class FoldingCell: UITableViewCell {
         }
     }
     
-    public func closeAnimation(_ completion: (() -> Void)?) {
+    func closeAnimation(_ completion: (() -> Void)?) {
         isUnfolded = false
         removeImageItemsFromAnimationView()
         addImageItemsToAnimationView()
@@ -359,7 +362,7 @@ open class FoldingCell: UITableViewCell {
         var durations: [TimeInterval] = durationSequence(.close).reversed()
         
         var delay: TimeInterval = 0
-        var timing = kCAMediaTimingFunctionEaseIn
+        var timing = convertFromCAMediaTimingFunctionName(CAMediaTimingFunctionName.easeIn)
         var from: CGFloat = 0.0
         var to: CGFloat = CGFloat.pi / 2
         var hidden = true
@@ -375,7 +378,7 @@ open class FoldingCell: UITableViewCell {
             
             to = to == 0.0 ? CGFloat.pi / 2 : 0.0
             from = from == 0.0 ? -CGFloat.pi / 2 : 0.0
-            timing = timing == kCAMediaTimingFunctionEaseIn ? kCAMediaTimingFunctionEaseOut : kCAMediaTimingFunctionEaseIn
+            timing = timing == convertFromCAMediaTimingFunctionName(CAMediaTimingFunctionName.easeIn) ? convertFromCAMediaTimingFunctionName(CAMediaTimingFunctionName.easeOut) : convertFromCAMediaTimingFunctionName(CAMediaTimingFunctionName.easeIn)
             hidden = !hidden
             delay += durations[index]
         }
@@ -400,6 +403,12 @@ open class FoldingCell: UITableViewCell {
 // MARK: RotatedView
 
 open class RotatedView: UIView {
+    
+    fileprivate enum Const {
+        static let rotationX = "rotation.x"
+        static let transformRotationX = "transform.rotation.x"
+    }
+    
     var hiddenAfterAnimation = false
     var backView: RotatedView?
     
@@ -446,19 +455,19 @@ extension RotatedView: CAAnimationDelegate {
     
     func foldingAnimation(_ timing: String, from: CGFloat, to: CGFloat, duration: TimeInterval, delay: TimeInterval, hidden: Bool) {
         
-        let rotateAnimation = CABasicAnimation(keyPath: "transform.rotation.x")
-        rotateAnimation.timingFunction = CAMediaTimingFunction(name: timing)
+        let rotateAnimation = CABasicAnimation(keyPath: Const.transformRotationX)
+        rotateAnimation.timingFunction = CAMediaTimingFunction(name: convertToCAMediaTimingFunctionName(timing))
         rotateAnimation.fromValue = from
         rotateAnimation.toValue = to
         rotateAnimation.duration = duration
         rotateAnimation.delegate = self
-        rotateAnimation.fillMode = kCAFillModeForwards
+        rotateAnimation.fillMode = CAMediaTimingFillMode.forwards
         rotateAnimation.isRemovedOnCompletion = false
         rotateAnimation.beginTime = CACurrentMediaTime() + delay
         
         self.hiddenAfterAnimation = hidden
         
-        self.layer.add(rotateAnimation, forKey: "rotation.x")
+        self.layer.add(rotateAnimation, forKey: Const.rotationX)
     }
     
     public func animationDidStart(_: CAAnimation) {
@@ -491,4 +500,14 @@ private extension UIView {
         
         return image
     }
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromCAMediaTimingFunctionName(_ input: CAMediaTimingFunctionName) -> String {
+	return input.rawValue
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertToCAMediaTimingFunctionName(_ input: String) -> CAMediaTimingFunctionName {
+	return CAMediaTimingFunctionName(rawValue: input)
 }
