@@ -1,5 +1,5 @@
 //
-//  MainTableViewController.swift
+//  TableViewController.swift
 //
 // Copyright (c) 21/12/15. Ramotion Inc. (http://ramotion.com)
 //
@@ -24,7 +24,7 @@
 import FoldingCell
 import UIKit
 
-class MainTableViewController: UITableViewController {
+class TableViewController: UITableViewController {
 
     enum Const {
         static let closeCellHeight: CGFloat = 179
@@ -34,11 +34,13 @@ class MainTableViewController: UITableViewController {
     
     var cellHeights: [CGFloat] = []
 
+    // MARK: Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setup()
     }
 
+    // MARK: Helpers
     private func setup() {
         cellHeights = Array(repeating: Const.closeCellHeight, count: Const.rowsCount)
         tableView.estimatedRowHeight = Const.closeCellHeight
@@ -50,6 +52,7 @@ class MainTableViewController: UITableViewController {
         }
     }
     
+    // MARK: Actions
     @objc func refreshHandler() {
         let deadlineTime = DispatchTime.now() + .seconds(1)
         DispatchQueue.main.asyncAfter(deadline: deadlineTime, execute: { [weak self] in
@@ -63,7 +66,7 @@ class MainTableViewController: UITableViewController {
 
 // MARK: - TableView
 
-extension MainTableViewController {
+extension TableViewController {
 
     override func tableView(_: UITableView, numberOfRowsInSection _: Int) -> Int {
         return 10
@@ -120,6 +123,11 @@ extension MainTableViewController {
         UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: { () -> Void in
             tableView.beginUpdates()
             tableView.endUpdates()
+            
+            // fix https://github.com/Ramotion/folding-cell/issues/169
+            if cell.frame.maxY > tableView.frame.maxY {
+                tableView.scrollToRow(at: indexPath, at: UITableView.ScrollPosition.bottom, animated: true)
+            }
         }, completion: nil)
     }
 }
